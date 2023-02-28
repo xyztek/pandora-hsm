@@ -25,20 +25,12 @@ try {
     console.warn('session', session.toString());
 
     try {
-        const x = pkcs11.C_Login(session, 0, "123456");
+        const x = pkcs11.C_Login(session, 1, "123456");
         // HSM’de iki tip kullanıcı tanımlıdır bunlar Kullanıcı ve Yönetici ‘dir
         console.warn('**', x)
     } catch (error) {
         console.warn('***', error)
     }
-
-    // // Getting info about slot 81
-    // var slot_info = pkcs11.C_GetSlotInfo(slot_81);
-    // console.warn('slot_info', slot_info)
-
-    // // Getting info about token
-    // var token_info = pkcs11.C_GetTokenInfo(slot_81);
-    // console.warn('token_info', token_info)
 
     // Getting info about Session
     var info = pkcs11.C_GetSessionInfo(session);
@@ -47,28 +39,28 @@ try {
     /**
      * Your app code here
      */
-    // // Generating key pair using AES mechanism
-    var template = [
-        { type: pkcs11js.CKA_CLASS, value: pkcs11js.CKO_SECRET_KEY },
+    var publicKeyTemplate = [
+        { type: pkcs11js.CKA_CLASS, value: pkcs11js.CKO_PUBLIC_KEY },
         { type: pkcs11js.CKA_TOKEN, value: false },
-        { type: pkcs11js.CKA_LABEL, value: "My AES Key" },
-        { type: pkcs11js.CKA_VALUE_LEN, value: 256 / 8 },
-        { type: pkcs11js.CKA_ENCRYPT, value: true },
-        { type: pkcs11js.CKA_DECRYPT, value: true },
+        { type: pkcs11js.CKA_LABEL, value: "My RSA Public Key" },
+        { type: pkcs11js.CKA_PUBLIC_EXPONENT, value: Buffer.from([1, 0, 1]) },
+        { type: pkcs11js.CKA_MODULUS_BITS, value: 2048 },
+        { type: pkcs11js.CKA_VERIFY, value: true }
     ];
+    var privateKeyTemplate = [
+        { type: pkcs11js.CKA_CLASS, value: pkcs11js.CKO_PRIVATE_KEY },
+        { type: pkcs11js.CKA_TOKEN, value: false },
+        { type: pkcs11js.CKA_LABEL, value: "My RSA Private Key" },
+        { type: pkcs11js.CKA_SIGN, value: true },
+    ];
+    var keys = pkcs11.C_GenerateKeyPair(session, { mechanism: pkcs11js.CKM_RSA_PKCS_KEY_PAIR_GEN }, publicKeyTemplate, privateKeyTemplate);
 
-    // try {
-    //     var key = pkcs11.C_GenerateKey(session, { mechanism: pkcs11js.CKM_AES_KEY_GEN }, template);
-    // } catch (error) {
-    //     console.warn('burasi', error)
-    // }
-    try {
-        pkcs11.C_GenerateKey(session, { mechanism: pkcs11js.CKM_AES_KEY_GEN }, template)    
-    } catch (error) {
-        console.warn(error)
-    }
-    // pkcs11.C_InitPIN(session, '123456')
-    pkcs11.
+    console.warn('keys:', keys);
+    pkcs11.C_SignInit(session, { mechanism: pkcs11js.CKM_SHA256_RSA_PKCS }, keys.privateKey);
+    pkcs11.C_SignUpdate(session, Buffer.from("Incoming message 1"));
+
+    var signature = pkcs11.C_SignFinal(session, Buffer(256));
+    console.warn('signature:', signature)
 
     pkcs11.C_Logout(session);
     pkcs11.C_CloseSession(session);
