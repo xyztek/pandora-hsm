@@ -1,8 +1,25 @@
 # Pandora HSM
 
-This repository provides an example implementation for key generation, export, and signature, using TÜBİTAK Network HSM (Hardware Security Module) device.
+This repository provides an example implementations for key generation, certificate export, and signing arbitrary data using TÜBİTAK Network HSM (Hardware Security Module) device.
 
-## Instructions for VPN Mode in Ubuntu 22.04.2 LTS
+## Usage
+
+### Key Generation
+
+A script is provided for key generation.
+
+Run the generation script via the `npm run generate` command. This will generate a key pair and execute
+a bash script to output the related CSR (Certificate Signing Request) to `pandora.csr` file in the root folder.
+
+The command executes `scripts/generate.js` file. The script imports the `generate` function from `src/generator.js`.
+
+### Signature
+
+An example implementation for signing arbitrary data via the HSM is provided in the `src/signer.js` file.
+
+## Installation
+
+### Instructions for VPN Mode in Ubuntu 22.04.2 LTS
 
 `sudo su`
 
@@ -20,7 +37,7 @@ This repository provides an example implementation for key generation, export, a
 
 `openvpn3 session-start --config *your_vpn_config_file_path*`
 
-## Setting Up Dirak Client
+### Setting Up Dirak Client
 
 Download and extract Dirak Client from [Safir Depo](https://safirdepo.b3lab.org/shares/public/share/S2PdP1CzwgRXdhmgamwiXRaigaBo8byX).
 
@@ -38,20 +55,15 @@ Fill in the IP and Serial Number fields as with your spesific informations:
 `sudo service dirakAuthenticator restart`
 
 `sudo ./dirakAuthenticatorApp -i -t srpP -u username -p password`
-You must see: "_your_spesific_ip_": Requested function succeeded!
+You must see: "**IP_ADRESS**": Requested function succeeded!
 
-To check connection health:
+To check the connection health:
 `ping *your_spesific_ip*`
 
 Run dirakClient64 test application to check if you can connect to the HSM device and sign.
 `sudo ./dirakClient64`
 
-## Run the Application
+### Packages
 
 In the project's main directory first run:
-`npm i`
-
-If everything is fine run :
-`npm run generate`
-
-This will generate a keypair, sign the data with the private key, and put the CSR down to `pandora.csr` file.
+`npm install`
