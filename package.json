@@ -10,7 +10,7 @@
     "generate": "sudo node scripts/generate.js"
   },
   "author": "",
-  "license": "ISC",
+  "license": "SEE LICENCE IN license.md",
   "dependencies": {
     "@peculiar/webcrypto": "^1.4.1",
     "@peculiar/x509": "^1.9.3",
