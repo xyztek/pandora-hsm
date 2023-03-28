@@ -1,11 +1,20 @@
-import { execSync } from "child_process";
+import { generateKeyPair } from '../src/generator.js'
+import { generateCSR } from '../src/csr.js'
+import { sign } from '../src/signer.js'
 
-import { generate } from "./generator.js";
+// Definealgorithm
+const alg = {
+  name: 'RSASSA-PKCS1-v1_5',
+  hash: 'SHA-256',
+  publicExponent: new Uint8Array([1, 0, 1]),
+  modulusLength: 2048,
+  token: true,
+  sensitive: true
+}
 
-(async function () {
-  await generate();
+const { keys } = await generateKeyPair(alg)
+console.warn('privKey', keys.privateKey)
 
-  execSync(
-    "sudo openssl req -nodes -new -days 365 -sha256 -config engine.conf -engine pkcs11 -keyform engine -key slot_81 -out pandora.csr"
-  );
-})();
+await generateCSR(alg, keys)
+
+await sign(alg, keys, 'data_to_be_signed')
