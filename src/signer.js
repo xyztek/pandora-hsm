@@ -1,41 +1,37 @@
 import pkcs11js from "pkcs11js";
 import * as dotenv from "dotenv";
-import { execSync } from "child_process";
 
 dotenv.config();
 
 const pkcs11 = new pkcs11js.PKCS11();
-
 pkcs11.load("/usr/local/lib/libdirakp11-64.so");
-pkcs11.C_Initialize();
 
-function verifyCSR(csr) {
-  return execSync("openssl req -text -noout -verify -in pandora.csr");
-}
-
-function sign(generator, data) {
+function sign(keys, data) {
   try {
+    pkcs11.C_Initialize();
+
+    const slot = pkcs11.C_GetSlotList(true)[0];
+
+    const session = pkcs11.C_OpenSession(
+      slot,
+      pkcs11js.CKF_SERIAL_SESSION | pkcs11js.CKF_RW_SESSION
+    );
+
+    pkcs11.C_Login(session, 1, process.env.HSM_ADMIN_USER_PASS);
+
     pkcs11.C_SignInit(
-      generator.session,
+      session,
       { mechanism: pkcs11js.CKM_SHA256_RSA_PKCS },
-      generator.keys.privateKey
+      keys.privateKey
     );
-    pkcs11.C_SignUpdate(generator.session, Buffer.from(data));
-    const signature = pkcs11.C_SignFinal(
-      generator.session,
-      Buffer.from(new ArrayBuffer(512))
-    );
-    console.warn("signature:", signature);
 
-    try {
-      const verified = verifyCSR(generator.csr);
-      console.log("CSR verified with result: %s", verified);
-    } catch (error) {
-      console.error(error);
-    }
+    pkcs11.C_SignUpdate(session, Buffer.from(data));
 
-    pkcs11.C_Logout(generator.session);
-    pkcs11.C_CloseSession(generator.session);
+    pkcs11.C_SignFinal(session, Buffer.from(new ArrayBuffer(512)));
+
+    pkcs11.C_Logout(session);
+
+    pkcs11.C_CloseSession(session);
   } catch (e) {
     console.error(e);
   } finally {
