@@ -13,6 +13,8 @@
   "license": "SEE LICENCE IN license.md",
   "dependencies": {
     "@peculiar/x509": "^1.9.3",
+    "dotenv": "^16.0.3",
+    "jsdoc": "^4.0.2",
     "node-webcrypto-p11": "^2.6.1"
   }
 }
