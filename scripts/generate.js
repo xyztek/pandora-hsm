@@ -13,8 +13,4 @@ const alg = {
 }
 
 const { keys } = await generateKeyPair(alg)
-console.warn('privKey', keys.privateKey)
-
 await generateCSR(alg, keys)
-
-await sign(alg, keys, 'data_to_be_signed')

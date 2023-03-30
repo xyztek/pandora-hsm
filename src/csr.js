@@ -1,4 +1,5 @@
 import * as x509 from '@peculiar/x509'
+import * as fs from 'fs'
 import { Crypto } from 'node-webcrypto-p11'
 
 async function generateCSR (alg, keys) {
@@ -21,9 +22,15 @@ async function generateCSR (alg, keys) {
       ]
     }, crypto)
 
-    console.log(csr.toString('pem'))
+    fs.writeFile('../pandora.csr', csr.toString('pem'), error => {
+      if(error) {
+        console.error(error)
+      }
+    })
+
+    return csr
   } catch (error) {
-    console.error('error here', error)
+    console.error(error)
   }
 }
 

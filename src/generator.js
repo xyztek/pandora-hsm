@@ -11,19 +11,9 @@ async function generateKeyPair (alg) {
       readWrite: true
     })
 
-    // Once keys created they stored unless any bad action.
-    // They can be cleaned in this way.
-    await crypto.keyStorage.clear()
-    await crypto.certStorage.clear()
-
     const keys = await crypto.subtle.generateKey(alg, false, ['sign', 'verify'])
 
-    const allKeys = await crypto.keyStorage.keys()
-    for (const index of allKeys) {
-      console.log('all keys', index)
-    }
-
-    return { alg, keys, crypto }
+    return { keys }
   } catch (error) {
     console.error(error)
   }

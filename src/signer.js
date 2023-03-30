@@ -10,9 +10,8 @@ async function sign (alg, keys, data) {
   })
 
   const signature = await crypto.subtle.sign(alg, keys.privateKey, Buffer.from(data))
-  console.log(`Signature: ${signature}`)
-  const ok = await crypto.subtle.verify(alg, keys.publicKey, signature, Buffer.from(data))
-  console.log(`Verification: ${ok}`)
+  await crypto.subtle.verify(alg, keys.publicKey, signature, Buffer.from(data))
+  return signature
 }
 
 export { sign }
