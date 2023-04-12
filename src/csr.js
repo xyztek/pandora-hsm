@@ -1,37 +1,76 @@
-import * as x509 from '@peculiar/x509'
-import * as fs from 'fs'
-import { Crypto } from 'node-webcrypto-p11'
+import * as x509 from "@peculiar/x509";
+import { Crypto } from "node-webcrypto-p11";
 
-async function generateCSR (alg, keys) {
-  // Generate CSR
-  try {
-    const crypto = new Crypto({
-      library: '/usr/local/lib/libdirakp11-64.so',
-      name: 'TÜBİTAK NHSM',
-      slot: 0,
-      pin: '123456',
-      readWrite: true
-    })
+import * as dotenv from "dotenv";
+import * as fs from "fs";
 
-    const csr = await x509.Pkcs10CertificateRequestGenerator.create({
-      name: 'CN=xyzteknoloji.com, C=TR, ST=Istanbul, L=Kozyatagi',
+dotenv.config();
+
+/**
+ * Initializes the Crypto provider.
+ * @returns {Crypto} The Crypto provider instance.
+ */
+function createCryptoProvider() {
+  return new Crypto({
+    library: process.env.PKCS11_LIBRARY_PATH,
+    name: process.env.PROVIDER_NAME,
+    slot: parseInt(process.env.SLOT),
+    pin: process.env.SLOT_PIN,
+    readWrite: true,
+  });
+}
+
+/**
+ * Generates a Certificate Signing Request (CSR).
+ * @param {object} alg - The signing algorithm.
+ * @param {CryptoKeyPair} keys - The key pair.
+ * @param {string} name - The distinguished name for the CSR subject.
+ * @param {Array<x509.Attribute>} attributes - The list of attributes for the CSR.
+ * @param {Crypto} crypto - The Crypto provider instance.
+ * @returns {Promise<x509.Pkcs10CertificateRequest>} The generated CSR.
+ */
+async function createCSR(algorithm, keys, name, attributes, crypto) {
+  return await x509.Pkcs10CertificateRequestGenerator.create(
+    {
+      name,
+      signingAlgorithm: algorithm,
+      attributes,
       keys,
-      signingAlgorithm: alg,
-      attributes: [
-        new x509.ChallengePasswordAttribute('123456')
-      ]
-    }, crypto)
+    },
+    crypto
+  );
+}
 
-    fs.writeFile('../pandora.csr', csr.toString('pem'), error => {
-      if(error) {
-        console.error(error)
-      }
-    })
+/**
+ * Writes the CSR to a file.
+ * @param {string} filePath - The file path.
+ * @param {x509.Pkcs10CertificateRequest} csr - The CSR.
+ */
+function writeCSRToFile(filePath, csr) {
+  fs.writeFile(filePath, csr.toString("pem"), (error) => {
+    if (error) {
+      console.error(error);
+    }
+  });
+}
 
-    return csr
+/**
+ * Generates a Certificate Signing Request (CSR) and saves it to a file.
+ * @param {object} algorithm - The signing algorithm.
+ * @param {CryptoKeyPair} keys - The key pair.
+ * @param {string} name - The distinguished name for the CSR subject.
+ * @param {Array<x509.Attribute>} attributes - The list of attributes for the CSR.
+ * @returns {Promise<x509.Pkcs10CertificateRequest>} The generated CSR.
+ */
+async function generateCSR(algorithm, keys, name, attributes) {
+  try {
+    const crypto = createCryptoProvider();
+    const csr = await createCSR(algorithm, keys, name, attributes, crypto);
+    writeCSRToFile("../pandora.csr", csr);
+    return csr;
   } catch (error) {
-    console.error(error)
+    console.error(error);
   }
 }
 
-export { generateCSR }
+export { generateCSR };
