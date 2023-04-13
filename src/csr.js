@@ -1,6 +1,5 @@
 import * as x509 from "@peculiar/x509";
 import { Crypto } from "node-webcrypto-p11";
-
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 

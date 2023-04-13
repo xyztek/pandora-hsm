@@ -1,8 +1,7 @@
+import * as x509 from "@peculiar/x509"
+import * as dotenv from "dotenv";
 import { generateKeyPair } from "../src/generator.js";
 import { generateCSR } from "../src/csr.js";
-import * as x509 from "@peculiar/x509"
-
-import * as dotenv from "dotenv";
 
 dotenv.config();
 

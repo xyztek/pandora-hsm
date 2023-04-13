@@ -1,5 +1,4 @@
 import { Crypto } from "node-webcrypto-p11";
-
 import * as dotenv from "dotenv";
 
 dotenv.config();
