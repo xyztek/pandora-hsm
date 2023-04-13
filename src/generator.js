@@ -1,56 +1,45 @@
-import pkcs11js from "pkcs11js";
+import { Crypto } from "node-webcrypto-p11";
 import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const PUBLIC_KEY_TEMPLATE = [
-  { type: pkcs11js.CKA_CLASS, value: pkcs11js.CKO_PUBLIC_KEY },
-  { type: pkcs11js.CKA_TOKEN, value: false },
-  { type: pkcs11js.CKA_LABEL, value: "rsa_public_key" },
-  { type: pkcs11js.CKA_DERIVE, value: true },
-  { type: pkcs11js.CKA_PUBLIC_EXPONENT, value: Buffer.from([1, 0, 1]) },
-  { type: pkcs11js.CKA_MODULUS_BITS, value: 4096 },
-  { type: pkcs11js.CKA_VERIFY, value: true },
-];
+/**
+ * Initializes the Crypto provider.
+ * @returns {Crypto} The Crypto provider instance.
+ */
+function createCryptoProvider() {
+  return new Crypto({
+    library: process.env.PKCS11_LIBRARY_PATH,
+    name: process.env.PROVIDER_NAME,
+    slot: parseInt(process.env.SLOT),
+    pin: process.env.SLOT_PIN,
+    readWrite: true,
+  });
+}
 
-const PRIVATE_KEY_TEMPLATE = [
-  { type: pkcs11js.CKA_CLASS, value: pkcs11js.CKO_PRIVATE_KEY },
-  { type: pkcs11js.CKA_TOKEN, value: false },
-  { type: pkcs11js.CKA_LABEL, value: "rsa_private_key" },
-  { type: pkcs11js.CKA_SIGN, value: true },
-];
+/**
+ * Generates a key pair using the specified algorithm.
+ * @param {object} algorithm - The key generation algorithm.
+ * @param {Crypto} crypto - The Crypto provider instance.
+ * @returns {Promise<CryptoKeyPair>} The generated key pair.
+ */
+async function generateKeys(algorithm, crypto) {
+  return await crypto.subtle.generateKey(algorithm, false, ["sign", "verify"]);
+}
 
-const pkcs11 = new pkcs11js.PKCS11();
-pkcs11.load("/usr/local/lib/libdirakp11-64.so");
-
-async function generate() {
+/**
+ * Generates a key pair using the specified algorithm.
+ * @param {object} algorithm - The key generation algorithm.
+ * @returns {Promise<CryptoKeyPair>} The generated key pair.
+ */
+async function generateKeyPair(algorithm) {
   try {
-    pkcs11.C_Initialize();
-
-    const slot = pkcs11.C_GetSlotList(true)[0];
-
-    const session = pkcs11.C_OpenSession(
-      slot,
-      pkcs11js.CKF_SERIAL_SESSION | pkcs11js.CKF_RW_SESSION
-    );
-
-    pkcs11.C_Login(session, 1, process.env.HSM_ADMIN_USER_PASS);
-
-    pkcs11.C_GenerateKeyPair(
-      session,
-      { mechanism: pkcs11js.CKM_RSA_PKCS_KEY_PAIR_GEN },
-      PUBLIC_KEY_TEMPLATE,
-      PRIVATE_KEY_TEMPLATE
-    );
-
-    pkcs11.C_Logout(session);
-
-    pkcs11.C_CloseSession(session);
-  } catch (e) {
-    console.error(e);
-  } finally {
-    pkcs11.C_Finalize();
+    const crypto = createCryptoProvider();
+    const keys = await generateKeys(algorithm, crypto);
+    return { keys };
+  } catch (error) {
+    console.error(error);
   }
 }
 
-export { generate };
+export { generateKeyPair };

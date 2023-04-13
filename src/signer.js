@@ -1,42 +1,58 @@
-import pkcs11js from "pkcs11js";
+import { Crypto } from "node-webcrypto-p11";
 import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const pkcs11 = new pkcs11js.PKCS11();
-pkcs11.load("/usr/local/lib/libdirakp11-64.so");
+/**
+ * Initializes the Crypto provider.
+ * @returns {Crypto} The Crypto provider instance.
+ */
+function createCryptoProvider() {
+  return new Crypto({
+    library: process.env.PKCS11_LIBRARY_PATH,
+    name: process.env.PROVIDER_NAME,
+    slot: parseInt(process.env.SLOT),
+    pin: process.env.SLOT_PIN,
+    readWrite: true,
+  });
+}
 
-function sign(keys, data) {
-  try {
-    pkcs11.C_Initialize();
+/**
+ * Signs the data with the provided private key and algorithm.
+ * @param {object} algorithm - The signing algorithm.
+ * @param {CryptoKey} privateKey - The private key for signing.
+ * @param {ArrayBuffer} data - The data to be signed.
+ * @param {Crypto} crypto - The Crypto provider instance.
+ * @returns {Promise<ArrayBuffer>} The signature.
+ */
+async function signData(algorithm, privateKey, data, crypto) {
+  return await crypto.subtle.sign(algorithm, privateKey, Buffer.from(data));
+}
 
-    const slot = pkcs11.C_GetSlotList(true)[0];
+/**
+ * Signs the data with the provided private key and algorithm.
+ * @param {object} algorithm - The signing algorithm.
+ * @param {CryptoKeyPair} keys - The key pair used for signing and verification.
+ * @param {ArrayBuffer} data - The data to be signed.
+ * @returns {Promise<ArrayBuffer>} The signature.
+ */
+async function sign(algorithm, keys, data) {
+  const crypto = createCryptoProvider();
+  const signature = await signData(algorithm, keys.privateKey, data, crypto);
 
-    const session = pkcs11.C_OpenSession(
-      slot,
-      pkcs11js.CKF_SERIAL_SESSION | pkcs11js.CKF_RW_SESSION
-    );
+  // Verify the signature
+  const isValid = await crypto.subtle.verify(
+    algorithm,
+    keys.publicKey,
+    signature,
+    Buffer.from(data)
+  );
 
-    pkcs11.C_Login(session, 1, process.env.HSM_ADMIN_USER_PASS);
-
-    pkcs11.C_SignInit(
-      session,
-      { mechanism: pkcs11js.CKM_SHA256_RSA_PKCS },
-      keys.privateKey
-    );
-
-    pkcs11.C_SignUpdate(session, Buffer.from(data));
-
-    pkcs11.C_SignFinal(session, Buffer.from(new ArrayBuffer(512)));
-
-    pkcs11.C_Logout(session);
-
-    pkcs11.C_CloseSession(session);
-  } catch (e) {
-    console.error(e);
-  } finally {
-    pkcs11.C_Finalize();
+  if (!isValid) {
+    throw new Error("Signature verification failed.");
   }
+
+  return signature;
 }
 
 export { sign };

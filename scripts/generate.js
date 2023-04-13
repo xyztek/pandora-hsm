@@ -1,11 +1,34 @@
-import { execSync } from "child_process";
+import * as x509 from "@peculiar/x509"
+import * as dotenv from "dotenv";
+import { generateKeyPair } from "../src/generator.js";
+import { generateCSR } from "../src/csr.js";
 
-import { generate } from "./generator.js";
+dotenv.config();
 
-(async function () {
-  await generate();
+/**
+ * Configures and runs the key pair generation and CSR creation process.
+ * @async
+ */
+async function main() {
+  // Define the signing algorithm
+  const algorithm = {
+    name: "RSASSA-PKCS1-v1_5",
+    hash: "SHA-256",
+    publicExponent: new Uint8Array([1, 0, 1]),
+    modulusLength: 2048,
+    token: true,
+    sensitive: true,
+  };
 
-  execSync(
-    "sudo openssl req -nodes -new -days 365 -sha256 -config engine.conf -engine pkcs11 -keyform engine -key slot_81 -out pandora.csr"
-  );
-})();
+  // Generate key pair
+  const { keys } = await generateKeyPair(algorithm);
+
+  // Generate and save CSR
+  await generateCSR(algorithm, keys, process.env.SIGNER_NAME, [
+    new x509.ChallengePasswordAttribute(process.env.SIGNER_CHALLENGE_PASSWORD),
+  ]);
+}
+
+main().catch((error) => {
+  console.error("An error occurred:", error);
+});
