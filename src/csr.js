@@ -66,7 +66,7 @@ async function generateCSR(algorithm, keys, name, attributes) {
   try {
     const crypto = createCryptoProvider();
     const csr = await createCSR(algorithm, keys, name, attributes, crypto);
-    writeCSRToFile("../pandora.csr", csr);
+    writeCSRToFile("./pandora.csr", csr);
     return csr;
   } catch (error) {
     console.error(error);
